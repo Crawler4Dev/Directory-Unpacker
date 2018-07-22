@@ -8,9 +8,8 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -22,16 +21,17 @@ public class Main {
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("Directory-Unpacker");
 		JTextField path = new JTextField();
-		JButton open = new JButton("Open File");
-		JButton unpack = new JButton("Unpack directory");
+		JButton open = new JButton("Open directory");
+		JButton unpack = new JButton("Unpack directories");
 		JFileChooser chooser = new JFileChooser();
-		JLabel status = new JLabel("Select a file");
+		JLabel status = new JLabel("Select a directory whose subdirectories are unpacked");
+		frame.setVisible(true);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(640, 360);
 		frame.setBackground(Color.WHITE);
 		frame.setResizable(false);
-		frame.setLocationRelativeTo(null);  
-		frame.setVisible(true);
+		frame.setLocationRelativeTo(null);
+		frame.setIconImage(new ImageIcon(Main.class.getResource("icon.png").getPath()).getImage());
 		unpack.setForeground(Color.DARK_GRAY);
 		open.setForeground(Color.DARK_GRAY);
 		status.setForeground(Color.RED);
@@ -43,21 +43,17 @@ public class Main {
 					File f = chooser.getSelectedFile();
 					if(f != null && f.isDirectory()) {
 						path.setText(f.getAbsolutePath());
-						status.setText("");
+						setStatus(frame, status, DIRECTORY_IS_SELECTED);
 					} else {
-						status.setText("Select a file");
-						status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
-						status.setForeground(Color.RED);
+						setStatus(frame, status, SELECT_A_DIRECTORY);
 					}
 				} else {
 					File f = new File(path.getText());
 					if(f != null && f.isDirectory()) {
 						path.setText(f.getAbsolutePath());
-						status.setText("");
+						setStatus(frame, status, DIRECTORY_IS_SELECTED);
 					} else {
-						status.setText("Select a file");
-						status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
-						status.setForeground(Color.RED);
+						setStatus(frame, status, SELECT_A_DIRECTORY);
 					}
 				}
 			}
@@ -70,20 +66,16 @@ public class Main {
 					for(File f : chooseFile.listFiles()) {
 						if(f.isDirectory()) {
 							try {
-								copyFiles(f, chooseFile);
-								deleteFile(f);
+								FileHelper.copyFiles(f, chooseFile);
+								FileHelper.deleteFile(f);
 							} catch (IOException e1) {
 								e1.printStackTrace();
 							}
 						}
 					}
-					status.setText("Directory unpacked");
-					status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
-					status.setForeground(Color.GREEN);
+					setStatus(frame, status, DIRECTORY_UNPACKED);
 				} else {
-					status.setText("Select a file");
-					status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
-					status.setForeground(Color.RED);
+					setStatus(frame, status, SELECT_A_DIRECTORY);
 				}
 			}
 		});
@@ -93,11 +85,9 @@ public class Main {
 				File f = new File(path.getText());
 				chooser.setSelectedFile(f);
 				if(f != null && f.isDirectory()) {
-					status.setText("");
+					setStatus(frame, status, DIRECTORY_IS_SELECTED);
 				} else {
-					status.setText("Select a file");
-					status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
-					status.setForeground(Color.RED);
+					setStatus(frame, status, SELECT_A_DIRECTORY);
 				}
 			}
 			@Override
@@ -116,33 +106,23 @@ public class Main {
 		frame.add(new JLabel(""), BorderLayout.CENTER);
 	}
 	
-	public static void copyFiles(File from, File to) throws IOException {
-		if (!to.exists()) {
-			to.mkdirs();
-		}
-		for (File file : from.listFiles()) {
-			if (file.isDirectory()) {
-				copyFiles(file, new File(to.getAbsolutePath() + "/" + file.getName()));
-			} else {
-				File n = new File(to.getAbsolutePath() + "/" + file.getName());
-				Files.copy(file.toPath(), n.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			}
-		}
-	}
-
-	public static void deleteFile(File files) {
-		if (files.isDirectory()) {
-			for (File file : files.listFiles()) {
-				if (file.isDirectory()) {
-					deleteFile(file);
-					file.delete();
-				} else {
-					file.delete();
-				}
-			}
-			files.delete();
-		} else {
-			files.delete();
+	private static int SELECT_A_DIRECTORY = 1;
+	private static int DIRECTORY_UNPACKED = 2;
+	private static int DIRECTORY_IS_SELECTED = 3;
+	
+	private static void setStatus(JFrame frame, JLabel status, int TYPE) {
+		if(TYPE == SELECT_A_DIRECTORY) {
+			status.setText("Select a directory whose subdirectories are unpacked");
+			status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
+			status.setForeground(Color.RED);
+		} else if(TYPE == DIRECTORY_UNPACKED) {
+			status.setText("All directories has been unpacked");
+			status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
+			status.setForeground(Color.GREEN);
+		} else if(TYPE == DIRECTORY_IS_SELECTED) {
+			status.setText("A directory is selected");
+			status.setBounds(frame.getWidth() / 2 - status.getFontMetrics(status.getFont()).stringWidth(status.getText()) / 2, 160, frame.getWidth() / 2, 20);
+			status.setForeground(Color.DARK_GRAY);
 		}
 	}
 
